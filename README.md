@@ -1,4 +1,5 @@
 [https://github.com/lolwut2/Shoreline-V2](https://github.com/lolwut2/Shoreline-V2)
+[https://github.com/not-filepile/Shoreline-V2-buildable/releases/download/latest/shoreline-2.0.jar]
 ---
 # git log [here](https://github.com/not-filepile/Shoreline-V2)
 ---
