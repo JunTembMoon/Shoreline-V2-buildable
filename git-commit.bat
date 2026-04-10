@@ -18,6 +18,28 @@ if errorlevel 1 (
 if /I "%~1"=="-h" goto usage
 if /I "%~1"=="--help" goto usage
 
+echo.
+echo [INFO] Current changes:
+git status --short
+echo.
+
+git add -A
+if errorlevel 1 (
+    echo [ERROR] Failed to stage changes.
+    exit /b 1
+)
+
+git diff --cached --quiet
+set "diff_exit=%errorlevel%"
+if "%diff_exit%"=="0" (
+    echo [INFO] There are no staged changes to commit.
+    goto push_branch
+)
+if not "%diff_exit%"=="1" (
+    echo [ERROR] Failed to inspect staged changes.
+    exit /b %diff_exit%
+)
+
 set "commit_message="
 if "%~1"=="" goto prompt_message
 
@@ -39,28 +61,6 @@ if not defined commit_message (
     exit /b 1
 )
 
-echo.
-echo [INFO] Current changes:
-git status --short
-echo.
-
-git add -A
-if errorlevel 1 (
-    echo [ERROR] Failed to stage changes.
-    exit /b 1
-)
-
-git diff --cached --quiet
-set "diff_exit=%errorlevel%"
-if "%diff_exit%"=="0" (
-    echo [INFO] There are no staged changes to commit.
-    exit /b 0
-)
-if not "%diff_exit%"=="1" (
-    echo [ERROR] Failed to inspect staged changes.
-    exit /b %diff_exit%
-)
-
 git commit -m "%commit_message%"
 if errorlevel 1 (
     echo [ERROR] Commit failed.
@@ -70,11 +70,30 @@ if errorlevel 1 (
 echo.
 echo [INFO] Commit completed successfully.
 git log -1 --oneline
+
+:push_branch
+for /f "delims=" %%i in ('git branch --show-current') do set "current_branch=%%i"
+if not defined current_branch (
+    echo [ERROR] Could not determine the current branch.
+    exit /b 1
+)
+
+echo.
+echo [INFO] Pushing to origin/%current_branch%...
+git push origin %current_branch%
+if errorlevel 1 (
+    echo [ERROR] Push failed.
+    exit /b 1
+)
+
+echo.
+echo [INFO] Commit and push completed successfully.
 exit /b 0
 
 :usage
 echo Usage:
 echo   git-commit.bat "Your commit message"
 echo.
-echo If no message is provided, the script prompts for one.
+echo The script commits all changes and pushes the current branch.
+echo If no message is provided, the script prompts for one when a commit is needed.
 exit /b 0
