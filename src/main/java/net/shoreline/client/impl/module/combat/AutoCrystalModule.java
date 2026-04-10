@@ -67,6 +67,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
 @Getter
 public class AutoCrystalModule extends ObsidianPlacerModule
@@ -609,7 +610,7 @@ public class AutoCrystalModule extends ObsidianPlacerModule
             return;
         }
 
-        if (crystalsPlaced.get() > placeLimit.getValue())
+        if (crystalsPlaced.get() >= placeLimit.getValue())
         {
             return;
         }
@@ -695,16 +696,22 @@ public class AutoCrystalModule extends ObsidianPlacerModule
 
     private <T> CrystalData<T> getBestCrystal(List<CrystalData<T>> crystals)
     {
-        CrystalData<T> bestCrystal = getBestCrystal(crystals, false);
+        CrystalData<T> overrideCrystal = getBestCrystal(crystals, data -> isOverrideCrystal(data));
+        if (overrideCrystal != null)
+        {
+            return overrideCrystal;
+        }
+
+        CrystalData<T> bestCrystal = getBestCrystal(crystals, data -> true);
         if (bestCrystal == null || bestCrystal.getDamageToTarget() < minDamage.getValue())
         {
-            return getBestCrystal(crystals, true);
+            return getBestCrystal(crystals, data -> isImmediateCrystal(data));
         }
 
         return bestCrystal;
     }
 
-    public <T extends CrystalData<?>> T getBestCrystal(List<T> crystals, boolean onlyImmediate)
+    private <T extends CrystalData<?>> T getBestCrystal(List<T> crystals, Predicate<T> filter)
     {
         if (crystals.isEmpty())
         {
@@ -712,28 +719,71 @@ public class AutoCrystalModule extends ObsidianPlacerModule
         }
 
         T bestCrystal = null;
-        double bestDamage = 0.0f;
         for (T data : crystals)
         {
-            if (onlyImmediate && !(data instanceof CrystalData.Immediate<?>))
+            if (!filter.test(data))
             {
                 continue;
             }
 
-            CrystalData<?> candidate = validateCrystalData((CrystalData<?>) data, bestDamage);
+            CrystalData<?> candidate = validateCrystalData(data);
             if (candidate == null)
             {
                 continue;
             }
 
-            bestDamage = candidate.getDamageToTarget();
-            bestCrystal = data;
+            if (bestCrystal == null || isBetterCrystal(candidate, bestCrystal))
+            {
+                bestCrystal = data;
+            }
         }
 
         return bestCrystal;
     }
 
-    private <T> CrystalData<T> validateCrystalData(CrystalData<T> data, double currentBest)
+    private boolean isBetterCrystal(CrystalData<?> candidate, CrystalData<?> currentBest)
+    {
+        int damageCompare = Double.compare(candidate.getDamageToTarget(), currentBest.getDamageToTarget());
+        if (damageCompare != 0)
+        {
+            return damageCompare > 0;
+        }
+
+        int selfDamageCompare = Double.compare(candidate.getDamageToPlayer(), currentBest.getDamageToPlayer());
+        if (selfDamageCompare != 0)
+        {
+            return selfDamageCompare < 0;
+        }
+
+        return getCrystalPriority(candidate) > getCrystalPriority(currentBest);
+    }
+
+    private int getCrystalPriority(CrystalData<?> crystalData)
+    {
+        if (isOverrideCrystal(crystalData))
+        {
+            return 2;
+        }
+
+        if (isImmediateCrystal(crystalData))
+        {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    private boolean isImmediateCrystal(CrystalData<?> crystalData)
+    {
+        return crystalData instanceof CrystalData.Immediate<?>;
+    }
+
+    private boolean isOverrideCrystal(CrystalData<?> crystalData)
+    {
+        return crystalData instanceof CrystalData.Immediate<?> immediate && immediate.getTag() == null;
+    }
+
+    private CrystalData<?> validateCrystalData(CrystalData<?> data)
     {
         LivingEntityState state = data.getTarget();
         if (state == null || state.isDead())
@@ -762,15 +812,9 @@ public class AutoCrystalModule extends ObsidianPlacerModule
         }
 
         float targetDamage = ExplosionUtil.getAppliedDamageToEntity(target, baseDamage);
-        if (targetDamage > currentBest)
-        {
-            data.setDamageToTarget(targetDamage);
-            data.setDamageToPlayer(selfDamage);
-
-            return data;
-        }
-
-        return null;
+        data.setDamageToTarget(targetDamage);
+        data.setDamageToPlayer(selfDamage);
+        return data;
     }
 
     private CrystalData.Immediate<BlockPos> validateMiningData(MiningData currentMine)
