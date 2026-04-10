@@ -4,13 +4,14 @@ import net.minecraft.client.gui.hud.MessageIndicator;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
 import net.minecraft.util.Formatting;
+import net.shoreline.client.ShorelineMod;
 import net.shoreline.client.impl.imixin.IChatHud;
 import net.shoreline.client.impl.module.client.ThemeModule;
 import net.shoreline.client.impl.render.ClientFormatting;
 
 public class LoggingFeature extends ListeningFeature
 {
-    protected static final String RAW_PREFIX = "[Shoreline]";
+    protected static final String RAW_PREFIX = "[" + ShorelineMod.MOD_NAME + "]";
     protected static final String PREFIX = ClientFormatting.THEME + RAW_PREFIX + Formatting.RESET + " ";
     protected static final String ERROR_PREFIX = "[\u274C] ";
     protected static final String SUCCESS_PREFIX = "[\u2713] ";

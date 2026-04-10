@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "shoreline",
   "version": "${version}",
-  "name": "Shoreline",
+  "name": "SauceClient",
   "description": "2b2t/Anarchy Utility Mod",
   "authors": [
     "linus"

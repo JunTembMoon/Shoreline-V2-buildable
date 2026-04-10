@@ -2,6 +2,7 @@ package net.shoreline.loader;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
+import net.shoreline.client.ShorelineMod;
 import net.shoreline.loader.session.UserSession;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,14 +25,14 @@ public class Loader implements
 		// ClientModInitializer, PreLaunchEntrypoint, // Fabric
 		IMixinConfigPlugin // Sponge
 {
-	private static final Logger LOGGER = LogManager.getLogger("Shoreline");
+	private static final Logger LOGGER = LogManager.getLogger(ShorelineMod.MOD_NAME);
 	public static final String VERSION = "r1.0.2";
 
 	public static UserSession SESSION;
 
 	static
 	{
-		info("Loading Shoreline...");
+		info("Loading " + ShorelineMod.MOD_NAME + "...");
 
 //		try
 //		{
@@ -153,26 +154,31 @@ public class Loader implements
 
 	public static native Object showErrorWindow(Object message);
 
+	private static String formatMessage(String message)
+	{
+		return String.format("[%s] %s", ShorelineMod.MOD_NAME, message);
+	}
+
 	public static void info(String message)
 	{
-		LOGGER.info(String.format("[Shoreline] %s", message));
+		LOGGER.info(formatMessage(message));
 	}
 
 	public static void info(String message,
 							Object... params)
 	{
-		LOGGER.info(String.format("[Shoreline] %s", message), params);
+		LOGGER.info(formatMessage(message), params);
 	}
 
 	public static void error(String message)
 	{
-		LOGGER.error(String.format("[Shoreline] %s", message));
+		LOGGER.error(formatMessage(message));
 	}
 
 	public static void error(String message,
 							 Object... params)
 	{
-		LOGGER.error(String.format("[Shoreline] %s", message), params);
+		LOGGER.error(formatMessage(message), params);
 	}
 
 	public static InputStream getResource(String name)

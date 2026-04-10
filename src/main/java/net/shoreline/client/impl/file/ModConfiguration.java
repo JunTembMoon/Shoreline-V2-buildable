@@ -3,6 +3,7 @@ package net.shoreline.client.impl.file;
 import lombok.Getter;
 import net.minecraft.client.MinecraftClient;
 import net.shoreline.client.Shoreline;
+import net.shoreline.client.ShorelineMod;
 import net.shoreline.client.api.config.ColorConfig;
 import net.shoreline.client.api.config.Config;
 import net.shoreline.client.api.file.ConfigContainerFile;
@@ -47,10 +48,10 @@ public class ModConfiguration
         {
             if (saveDirectory != null && Files.isWritable(saveDirectory))
             {
-                saveDirectory = saveDirectory.resolve("Shoreline");
+                saveDirectory = saveDirectory.resolve(ShorelineMod.MOD_NAME);
             } else
             {
-                saveDirectory = runningDir.resolve("Shoreline");
+                saveDirectory = runningDir.resolve(ShorelineMod.MOD_NAME);
             }
 
             modulesDirectory = saveDirectory.resolve("Modules");

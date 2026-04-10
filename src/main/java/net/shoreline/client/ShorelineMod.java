@@ -11,7 +11,7 @@ import net.shoreline.client.impl.render.ClientFormatting;
  */
 public class ShorelineMod implements ClientModInitializer
 {
-    public static final String MOD_NAME = "Shoreline";
+    public static final String MOD_NAME = "SauceClient";
     public static final String MOD_ID = "shoreline";
     public static final String MOD_VER = BuildConfig.VERSION;
     public static final String MOD_MC_VER = "1.21.4";

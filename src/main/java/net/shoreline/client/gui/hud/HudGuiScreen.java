@@ -6,6 +6,7 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 import net.shoreline.client.Shoreline;
+import net.shoreline.client.ShorelineMod;
 import net.shoreline.client.gui.clickgui.Frame;
 import net.shoreline.client.gui.clickgui.components.FrameComponent;
 import net.shoreline.client.gui.clickgui.components.TextComponent;
@@ -36,7 +37,7 @@ public class HudGuiScreen extends Screen
 
     protected HudGuiScreen()
     {
-        super(Text.of("Shoreline-Hud"));
+        super(Text.of(ShorelineMod.MOD_NAME + "-Hud"));
 
         hudFrame = new HudFrame("HUD", 100, 50, 120, 17);
         for (HudModule module : Managers.MODULES.getHudModules())

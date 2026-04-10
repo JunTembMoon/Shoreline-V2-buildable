@@ -7,6 +7,7 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
 import net.minecraft.util.math.MathHelper;
+import net.shoreline.client.ShorelineMod;
 import net.shoreline.client.api.module.GuiCategory;
 import net.shoreline.client.gui.Mouse;
 import net.shoreline.client.gui.clickgui.components.FrameComponent;
@@ -41,7 +42,7 @@ public class ClickGuiScreen extends Screen
 
     protected ClickGuiScreen()
     {
-        super(Text.of("Shoreline-ClickGui"));
+        super(Text.of(ShorelineMod.MOD_NAME + "-ClickGui"));
 
         float frameOffset = 15.0f;
         for (GuiCategory category : GuiCategory.values())

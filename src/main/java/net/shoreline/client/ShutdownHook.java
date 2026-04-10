@@ -8,7 +8,7 @@ public class ShutdownHook extends Thread
 {
     public ShutdownHook()
     {
-        setName("Shoreline-ShutdownHook");
+        setName(ShorelineMod.MOD_NAME + "-ShutdownHook");
     }
 
     /**

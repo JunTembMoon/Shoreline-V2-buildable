@@ -28,7 +28,7 @@ public class Shoreline
      */
     public static void init()
     {
-        info("Starting Shoreline...");
+        info("Starting " + ShorelineMod.MOD_NAME + "...");
 
         Managers.init();
 

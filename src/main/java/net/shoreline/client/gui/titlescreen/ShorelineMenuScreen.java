@@ -11,6 +11,7 @@ import net.minecraft.client.resource.language.I18n;
 import net.minecraft.client.util.Window;
 import net.minecraft.text.Text;
 import net.shoreline.client.Shoreline;
+import net.shoreline.client.ShorelineMod;
 import net.shoreline.client.gui.clickgui.ClickGuiScreen;
 import net.shoreline.client.gui.titlescreen.particle.ParticleManager;
 import net.shoreline.client.gui.titlescreen.particle.snow.SnowManager;
@@ -35,7 +36,7 @@ public class ShorelineMenuScreen extends Screen
 
     public ShorelineMenuScreen()
     {
-        super(Text.of("Shoreline-MainMenu"));
+        super(Text.of(ShorelineMod.MOD_NAME + "-MainMenu"));
         buttons = new ArrayList<>();
     }
 
