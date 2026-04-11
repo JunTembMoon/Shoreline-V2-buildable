@@ -12,11 +12,11 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Mouse.class)
-public class MixinMouse
+public abstract class MixinMouse
 {
     @Inject(method = "onMouseButton", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/option/KeyBinding;setKeyPressed(Lnet/minecraft/client/util/InputUtil$Key;Z)V"))
-    private void hookOnMouseButton(long window, int button, int action, int mods, CallbackInfo ci)
+    private void hookOnMouseButtonInput(long window, int button, int action, int mods, CallbackInfo ci)
     {
         InputEvent.Mouse inputEvent = new InputEvent.Mouse(button, action, mods);
         EventBus.INSTANCE.dispatch(inputEvent);

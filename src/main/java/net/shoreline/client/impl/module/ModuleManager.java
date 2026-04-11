@@ -71,6 +71,7 @@ public class ModuleManager
                 new ReplenishModule(),
                 new SelfFillerModule(),
                 new SelfTrapModule(),
+                new TriggerBotModule(),
                 // Exploit
                 new AntiHungerModule(),
                 new BacktrackModule(),
