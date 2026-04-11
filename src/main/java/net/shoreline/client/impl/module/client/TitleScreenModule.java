@@ -18,13 +18,14 @@ public class TitleScreenModule extends Toggleable
     public TitleScreenModule()
     {
         super("TitleScreen", "Enables the custom title screen", GuiCategory.CLIENT);
+        enabled.setValue(true);
         INSTANCE = this;
     }
 
     @Override
     protected void onEnable()
     {
-        super.onDisable();
+        super.onEnable();
         ShorelineMenuScreen.setSnowManager(getManager());
     }
 
