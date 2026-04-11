@@ -5,6 +5,7 @@ import net.shoreline.client.impl.module.movement.SpeedModule;
 
 public enum SpeedMode
 {
+    LEGIT(new Legit()),
     VANILLA(new Vanilla()),
     B_HOP(new BunnyHop()),
     STRAFE(new Strafe()),
