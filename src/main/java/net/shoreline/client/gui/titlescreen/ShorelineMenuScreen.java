@@ -19,7 +19,6 @@ import net.shoreline.client.gui.titlescreen.particle.snow.SnowManager;
 import net.shoreline.client.gui.titlescreen.particle.snow.SnowParticle;
 import net.shoreline.client.impl.module.client.ClickGuiModule;
 import net.shoreline.client.impl.module.client.TitleScreenModule;
-import net.shoreline.client.util.Keyboard;
 import org.lwjgl.glfw.GLFW;
 
 import java.lang.reflect.Constructor;
@@ -38,7 +37,6 @@ public class ShorelineMenuScreen extends Screen
     private static final int SURFACE_SOFT = 0x4412141A;
     private static final int ACCENT = 0xFFBA1328;
     private static final int TEXT = 0xFFF3F3F3;
-    private static final int MUTED = 0xB3C9C9C9;
     private final List<MenuButton> buttons;
     private static ParticleManager<SnowParticle> snowManager;
     private final ClickGuiScreen clickGuiScreen = ClickGuiScreen.INSTANCE;
@@ -259,21 +257,6 @@ public class ShorelineMenuScreen extends Screen
 
         drawChip(context, "COMBAT CLIENT", panelX, panelY, 0x66110F14, 0xFFBA1328);
         drawScaledText(context, ShorelineMod.MOD_NAME, panelX, panelY + (22.0f * compact), titleScale, TEXT);
-        context.drawTextWithShadow(client.textRenderer,
-                "Sharper visuals. Cleaner routing. Faster fights.",
-                Math.round(panelX),
-            Math.round(panelY + (74.0f * compact)),
-                MUTED);
-        context.drawTextWithShadow(client.textRenderer,
-                "Built for fast entry and aggressive sessions.",
-                Math.round(panelX),
-            Math.round(panelY + (88.0f * compact)),
-                0x88FFFFFF);
-
-        String versionText = ("VERSION " + ShorelineMod.MOD_VER).toUpperCase(Locale.ROOT);
-        String clickGuiText = ("CLICKGUI " + Keyboard.getKeyName(ClickGuiModule.INSTANCE.getKeybind().getValue().getKeycode())).toUpperCase(Locale.ROOT);
-        drawChip(context, versionText, panelX, panelY + (112.0f * compact), 0x4414161B, 0x22FFFFFF);
-        drawChip(context, clickGuiText, panelX + getChipWidth(versionText) + 8.0f, panelY + (112.0f * compact), 0x4414161B, 0x22FFFFFF);
     }
 
     private void renderLogoColumn(DrawContext context, int width, int height)
@@ -298,9 +281,10 @@ public class ShorelineMenuScreen extends Screen
 
     private void renderFooter(DrawContext context, int width, int height)
     {
-        String footer = "PRESS ESC TO CLOSE CLICKGUI OVERLAY";
-        context.drawTextWithShadow(client.textRenderer, footer, 18, height - 20, 0x88FFFFFF);
-        context.drawTextWithShadow(client.textRenderer, ShorelineMod.getFormattedVersion(), 18, height - 32, 0xAFFFFFFF);
+        if (renderingGui)
+        {
+            context.drawTextWithShadow(client.textRenderer, "PRESS ESC TO CLOSE OVERLAY", 18, height - 20, 0x88FFFFFF);
+        }
     }
 
     private void drawChip(DrawContext context, String text, float x, float y, int background, int edge)
