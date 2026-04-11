@@ -10,13 +10,9 @@ import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
 import net.minecraft.client.gui.screen.option.OptionsScreen;
 import net.minecraft.client.gui.screen.world.SelectWorldScreen;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.util.Identifier;
-import net.shoreline.client.ShorelineMod;
 import net.shoreline.client.impl.module.client.ClickGuiModule;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -25,16 +21,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(Screen.class)
 public abstract class MixinScreen
 {
-    @Unique
-    private static final Identifier SHORELINE_LOGO = Identifier.of(ShorelineMod.MOD_ID, "logo/white.png");
-    @Unique
     private static final int SCREEN_OVERLAY = 0xC9050608;
-    @Unique
-    private static final int SCREEN_PANEL = 0x7A111419;
-    @Unique
-    private static final int SCREEN_PANEL_SOFT = 0x50121419;
-    @Unique
-    private static final int SCREEN_ACCENT = 0xFFBA1328;
+    private static final int SCREEN_PANEL = 0x96111418;
+    private static final int SCREEN_PANEL_SOFT = 0x6413161C;
+    private static final int SCREEN_BORDER = 0x24FFFFFF;
+    private static final int SCREEN_ACCENT = 0xD0BA1328;
 
     @Shadow
     protected MinecraftClient client;
@@ -87,37 +78,35 @@ public abstract class MixinScreen
         }
 
         context.fill(0, 0, width, height, SCREEN_OVERLAY);
-        context.fill(0, 0, width, Math.round(height * 0.16f), 0x300B0D10);
-        context.fill(0, height - 46, width, height, 0x5A090A0D);
-        context.fill(22, 18, 24, height - 18, 0x25FFFFFF);
-        context.fill(24, 18, 28, height - 18, SCREEN_ACCENT);
+        context.fill(0, 0, width, Math.round(height * 0.12f), 0x220D1014);
+        context.fill(0, Math.round(height * 0.82f), width, height, 0x36090A0D);
 
         if ((Object) this instanceof OptionsScreen)
         {
-            int panelWidth = Math.min(420, width - 52);
+            int panelWidth = Math.min(470, width - 72);
             int panelX = (width - panelWidth) / 2;
-            int panelY = 34;
-            int panelHeight = height - 72;
+            int panelY = Math.max(28, height / 2 - 166);
+            int panelHeight = Math.min(332, height - panelY - 40);
             context.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, SCREEN_PANEL);
-            context.fill(panelX, panelY, panelX + panelWidth, panelY + 1, 0x20FFFFFF);
-            context.fill(panelX, panelY, panelX + 5, panelY + panelHeight, SCREEN_ACCENT);
-            context.fill(panelX + 20, panelY + 42, panelX + panelWidth - 20, panelY + panelHeight - 20, SCREEN_PANEL_SOFT);
+            context.fill(panelX, panelY, panelX + panelWidth, panelY + 1, SCREEN_BORDER);
+            context.fill(panelX, panelY, panelX + panelWidth, panelY + 4, SCREEN_ACCENT);
+            context.fill(panelX + 16, panelY + 20, panelX + panelWidth - 16, panelY + panelHeight - 18, SCREEN_PANEL_SOFT);
+            context.fill(panelX + 16, panelY + 48, panelX + panelWidth - 16, panelY + panelHeight - 62, 0x18000000);
         }
         else
         {
-            int panelX = 32;
-            int panelY = 36;
-            int panelWidth = width - 64;
-            int panelHeight = height - 94;
-            int footerY = height - 52;
-            context.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, SCREEN_PANEL);
-            context.fill(panelX, panelY, panelX + panelWidth, panelY + 1, 0x20FFFFFF);
-            context.fill(panelX, panelY, panelX + 5, panelY + panelHeight, SCREEN_ACCENT);
-            context.fill(panelX, footerY, panelX + panelWidth, height - 18, 0x68101318);
-            context.fill(panelX + 18, panelY + 18, panelX + panelWidth - 18, footerY - 14, SCREEN_PANEL_SOFT);
+            int panelWidth = Math.min(860, width - 76);
+            int panelX = (width - panelWidth) / 2;
+            int panelY = 34;
+            int panelBottom = height - 96;
+            int footerTop = height - 84;
+            context.fill(panelX, panelY, panelX + panelWidth, panelBottom, SCREEN_PANEL);
+            context.fill(panelX, panelY, panelX + panelWidth, panelY + 1, SCREEN_BORDER);
+            context.fill(panelX, panelY, panelX + panelWidth, panelY + 4, SCREEN_ACCENT);
+            context.fill(panelX + 14, panelY + 18, panelX + panelWidth - 14, panelBottom - 16, SCREEN_PANEL_SOFT);
+            context.fill(panelX, footerTop, panelX + panelWidth, height - 18, 0x7A101319);
+            context.fill(panelX, footerTop, panelX + panelWidth, footerTop + 1, SCREEN_BORDER);
         }
-
-        drawScreenWatermark(context);
         ci.cancel();
     }
 
@@ -127,36 +116,5 @@ public abstract class MixinScreen
         return (Object) this instanceof SelectWorldScreen
                 || (Object) this instanceof MultiplayerScreen
                 || (Object) this instanceof OptionsScreen;
-    }
-
-    @Unique
-    private void drawScreenWatermark(DrawContext context)
-    {
-        int logoSize = Math.min(140, Math.max(72, Math.min(width, height) / 5));
-        int logoX = width - logoSize - 26;
-        int logoY = 18;
-
-        context.drawTexture(RenderLayer::getGuiTextured,
-                SHORELINE_LOGO,
-                logoX + 14,
-                logoY + 14,
-                0.0f,
-                0.0f,
-                logoSize,
-                logoSize,
-                logoSize,
-                logoSize,
-                0x26B81428);
-        context.drawTexture(RenderLayer::getGuiTextured,
-                SHORELINE_LOGO,
-                logoX,
-                logoY,
-                0.0f,
-                0.0f,
-                logoSize,
-                logoSize,
-                logoSize,
-                logoSize,
-                0x16FFFFFF);
     }
 }
