@@ -213,6 +213,8 @@ public class AutoCrystalModule extends ObsidianPlacerModule
 
     private static final Box FULL_CRYSTAL_BB = new Box(-0.5, 0.0, -0.5, 0.5, 2.0, 0.5);
     private static final Box HALF_CRYSTAL_BB = new Box(-0.5, 0.0, -0.5, 0.5, 1.0, 0.5);
+    private static final long ATTACK_PACKET_TIMEOUT = 1500L;
+    private static final long PLACE_PACKET_TIMEOUT = 1000L;
 
     private final CrystalOptimizer optimizer = new CrystalOptimizer();
 
@@ -247,10 +249,12 @@ public class AutoCrystalModule extends ObsidianPlacerModule
     @Override
     public void onDisable()
     {
+        crystalCalc.cancelRun();
         currentAttack = null;
         currentPlace = null;
         attackPackets.clear();
         placePackets.clear();
+        optimizer.clear();
         silentRotated = false;
     }
 
@@ -268,11 +272,15 @@ public class AutoCrystalModule extends ObsidianPlacerModule
     @EventListener(priority = Priorities.AUTO_CRYSTAL)
     public void onTick(TickEvent.Pre event)
     {
+        cleanupPacketState();
         if (checkNull() || mc.player.isSpectator())
         {
             crystalCalc.cancelRun();
             currentAttack = null;
             currentPlace = null;
+            attackPackets.clear();
+            placePackets.clear();
+            optimizer.clear();
             return;
         }
 
@@ -388,6 +396,7 @@ public class AutoCrystalModule extends ObsidianPlacerModule
         {
             for (int id : packet.getEntityIds())
             {
+                optimizer.clearDead(id);
                 Long time = attackPackets.remove(id);
                 if (time != null)
                 {
@@ -580,9 +589,10 @@ public class AutoCrystalModule extends ObsidianPlacerModule
     {
         StatusEffectInstance weakness = mc.player.getStatusEffect(StatusEffects.WEAKNESS);
         StatusEffectInstance strength = mc.player.getStatusEffect(StatusEffects.STRENGTH);
+        boolean shouldAntiWeaknessSwap = autoSwap.getValue() && silentSwap.getValue() && antiWeakness.getValue();
 
         boolean canBreakCrystal = weakness == null || (strength != null && strength.getAmplifier() >= weakness.getAmplifier());
-        if (!canBreakCrystal && antiWeakness.getValue())
+        if (!canBreakCrystal && shouldAntiWeaknessSwap)
         {
             int slot = getAntiWeaknessSlot();
             if (slot == -1 || !Managers.INVENTORY.startSwap(slot, silentType.getValue()))
@@ -594,7 +604,7 @@ public class AutoCrystalModule extends ObsidianPlacerModule
         sendAttackPacketsInternal(crystalId, swingConfig.getValue(), hand);
         optimizer.setDead(crystalId);
 
-        if (!canBreakCrystal)
+        if (!canBreakCrystal && shouldAntiWeaknessSwap)
         {
             Managers.INVENTORY.endSwap(silentType.getValue());
         }
@@ -604,12 +614,6 @@ public class AutoCrystalModule extends ObsidianPlacerModule
 
     private void placeCrystal(BlockPos blockPos, Vec3d crystalVec, Hand hand)
     {
-        int slot = InventoryUtil.getItemSlot(Items.END_CRYSTAL, silentType.getValue());
-        if (slot == -1)
-        {
-            return;
-        }
-
         if (crystalsPlaced.get() >= placeLimit.getValue())
         {
             return;
@@ -617,7 +621,7 @@ public class AutoCrystalModule extends ObsidianPlacerModule
 
         if (currentAttack == null && crystalVec != null)
         {
-            Box placeArea = FULL_CRYSTAL_BB.offset(crystalVec);
+            Box placeArea = getCrystalBox(blockPos.up());
 
             List<EndCrystalEntity> blocking = WorldUtil.collectEntitiesInBox(EndCrystalEntity.class,
                     placeArea,
@@ -639,20 +643,48 @@ public class AutoCrystalModule extends ObsidianPlacerModule
         Direction placeDir = getPlaceDirection(blockPos, baseBox, eyePos, cut);
         BlockHitResult result = new BlockHitResult(cut, placeDir, blockPos, baseBox.contains(eyePos));
 
-        if (silentSwap.getValue())
+        boolean shouldSilentSwap = autoSwap.getValue() && silentSwap.getValue();
+        boolean holdingCrystal = Managers.INVENTORY.isHolding(Items.END_CRYSTAL, hand);
+        if (!holdingCrystal)
         {
-            if (!Managers.INVENTORY.startSwap(slot, silentType.getValue()))
+            if (!autoSwap.getValue())
             {
                 return;
             }
 
-        } else if (autoSwap.getValue())
-        {
-            autoSwapHandler.handleSwaps();
-            if (autoSwapHandler.canAutoSwap())
+            int slot = InventoryUtil.getItemSlot(Items.END_CRYSTAL, silentType.getValue());
+            if (slot == -1)
             {
+                return;
+            }
+
+            if (shouldSilentSwap)
+            {
+                if (!Managers.INVENTORY.startSwap(slot, silentType.getValue()))
+                {
+                    return;
+                }
+            }
+            else
+            {
+                autoSwapHandler.handleSwaps();
+                if (!autoSwapHandler.canAutoSwap())
+                {
+                    return;
+                }
+
                 Managers.INVENTORY.setSelectedSlot(slot);
             }
+        }
+
+        if (!Managers.INVENTORY.isHolding(Items.END_CRYSTAL, hand))
+        {
+            if (shouldSilentSwap)
+            {
+                Managers.INVENTORY.endSwap(silentType.getValue());
+            }
+
+            return;
         }
 
         PlaceInteraction placeInteraction = PlaceInteraction.builder()
@@ -660,19 +692,17 @@ public class AutoCrystalModule extends ObsidianPlacerModule
                 .direction(placeDir)
                 .build();
 
-        if (Managers.INVENTORY.isHolding(Items.END_CRYSTAL, hand))
+        sendSequencedPacket(id -> new PlayerInteractBlockC2SPacket(hand, result, id));
+        if (swingConfig.getValue())
         {
-            sendSequencedPacket(id -> new PlayerInteractBlockC2SPacket(hand, result, id));
-            if (swingConfig.getValue())
-            {
-                mc.player.swingHand(hand);
-            } else
-            {
-                sendPacket(new HandSwingC2SPacket(hand));
-            }
+            mc.player.swingHand(hand);
+        }
+        else
+        {
+            sendPacket(new HandSwingC2SPacket(hand));
         }
 
-        if (silentSwap.getValue())
+        if (shouldSilentSwap)
         {
             Managers.INVENTORY.endSwap(silentType.getValue());
         }
@@ -781,6 +811,13 @@ public class AutoCrystalModule extends ObsidianPlacerModule
     private boolean isOverrideCrystal(CrystalData<?> crystalData)
     {
         return crystalData instanceof CrystalData.Immediate<?> immediate && immediate.getTag() == null;
+    }
+
+    private void cleanupPacketState()
+    {
+        long now = System.currentTimeMillis();
+        attackPackets.entrySet().removeIf(entry -> now - entry.getValue() > ATTACK_PACKET_TIMEOUT);
+        placePackets.entrySet().removeIf(entry -> now - entry.getValue() > PLACE_PACKET_TIMEOUT);
     }
 
     private CrystalData<?> validateCrystalData(CrystalData<?> data)

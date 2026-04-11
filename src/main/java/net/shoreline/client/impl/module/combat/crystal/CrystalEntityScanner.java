@@ -12,6 +12,7 @@ import net.shoreline.client.impl.world.EntityState;
 import net.shoreline.client.impl.world.LivingEntityState;
 import net.shoreline.client.impl.world.explosion.ExplosionScanner;
 import net.shoreline.client.util.entity.PlayerUtil;
+import net.shoreline.client.util.world.RaytraceUtil;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -56,6 +57,13 @@ public abstract class CrystalEntityScanner extends ExplosionScanner
 
         double breakDist = getLocalEntity().getEyePos().squaredDistanceTo(crystal.getPos());
         if (breakDist > MathHelper.square(autoCrystal.getBreakRange().getValue()))
+        {
+            return;
+        }
+
+        Vec3d crystalVec = crystal.getPos().add(0.0, 0.5, 0.0);
+        if (breakDist > MathHelper.square(autoCrystal.getBreakTrace().getValue())
+                && !RaytraceUtil.canSee(crystalVec, getLocalEntity().getEntity()))
         {
             return;
         }
