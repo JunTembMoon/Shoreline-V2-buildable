@@ -65,6 +65,15 @@ public class SpeedModule extends MovementModule
     {
         if (!checkNull())
         {
+            if (modeConfig.getValue() == SpeedMode.LEGIT
+                    && canApplySpeed()
+                    && mc.player.isOnGround()
+                    && !mc.player.isSneaking()
+                    && !mc.player.input.playerInput.jump())
+            {
+                mc.player.jump();
+            }
+
             modeConfig.getValue().getFeature().onDistanceTraveled();
         }
     }
@@ -81,6 +90,11 @@ public class SpeedModule extends MovementModule
         if (!canApplySpeed())
         {
             speedFeature.reset();
+            return;
+        }
+
+        if (modeConfig.getValue() == SpeedMode.LEGIT)
+        {
             return;
         }
 
