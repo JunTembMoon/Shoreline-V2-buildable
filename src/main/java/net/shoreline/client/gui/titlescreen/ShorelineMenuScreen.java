@@ -6,11 +6,12 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
 import net.minecraft.client.gui.screen.option.OptionsScreen;
+import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.gui.screen.world.SelectWorldScreen;
 import net.minecraft.client.resource.language.I18n;
+import net.minecraft.util.Identifier;
 import net.minecraft.client.util.Window;
 import net.minecraft.text.Text;
-import net.shoreline.client.Shoreline;
 import net.shoreline.client.ShorelineMod;
 import net.shoreline.client.gui.clickgui.ClickGuiScreen;
 import net.shoreline.client.gui.titlescreen.particle.ParticleManager;
@@ -18,6 +19,7 @@ import net.shoreline.client.gui.titlescreen.particle.snow.SnowManager;
 import net.shoreline.client.gui.titlescreen.particle.snow.SnowParticle;
 import net.shoreline.client.impl.module.client.ClickGuiModule;
 import net.shoreline.client.impl.module.client.TitleScreenModule;
+import net.shoreline.client.util.Keyboard;
 import org.lwjgl.glfw.GLFW;
 
 import java.lang.reflect.Constructor;
@@ -29,6 +31,14 @@ import java.util.Locale;
 @Getter
 public class ShorelineMenuScreen extends Screen
 {
+    private static final Identifier WHITE_LOGO = Identifier.of(ShorelineMod.MOD_ID, "logo/white.png");
+    private static final Identifier RED_LOGO = Identifier.of(ShorelineMod.MOD_ID, "logo/red.png");
+    private static final int BACKGROUND = 0xFF050608;
+    private static final int SURFACE = 0x88111418;
+    private static final int SURFACE_SOFT = 0x4412141A;
+    private static final int ACCENT = 0xFFBA1328;
+    private static final int TEXT = 0xFFF3F3F3;
+    private static final int MUTED = 0xB3C9C9C9;
     private final List<MenuButton> buttons;
     private static ParticleManager<SnowParticle> snowManager;
     private final ClickGuiScreen clickGuiScreen = ClickGuiScreen.INSTANCE;
@@ -44,7 +54,10 @@ public class ShorelineMenuScreen extends Screen
     public void resize(MinecraftClient client, int width, int height)
     {
         super.resize(client, width, height);
-        snowManager.reset();
+        if (snowManager != null)
+        {
+            snowManager.reset();
+        }
     }
 
     @Override
@@ -66,9 +79,14 @@ public class ShorelineMenuScreen extends Screen
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta)
     {
-        context.fill(0, 0, client.getWindow().getScaledWidth(), client.getWindow().getScaledHeight(), 0xFF000000);
+        int width = client.getWindow().getScaledWidth();
+        int height = client.getWindow().getScaledHeight();
+
+        renderBackdrop(context, width, height);
         snowManager.update();
         snowManager.render(context);
+        renderHero(context, width, height);
+        renderLogoColumn(context, width, height);
 
         double mX = renderingGui ? -1 : mouseX;
         double mY = renderingGui ? -1 : mouseY;
@@ -77,8 +95,11 @@ public class ShorelineMenuScreen extends Screen
             button.render(context, mX, mY, delta);
         }
 
+        renderFooter(context, width, height);
+
         if (renderingGui)
         {
+            context.fill(0, 0, width, height, 0x44000000);
             clickGuiScreen.render(context, mouseX, mouseY, delta);
         }
     }
@@ -164,45 +185,164 @@ public class ShorelineMenuScreen extends Screen
     {
         buttons.clear();
         Window window = client.getWindow();
-        float scaledWidth  = window.getScaledWidth();
+        float scaledWidth = window.getScaledWidth();
         float scaledHeight = window.getScaledHeight();
-        float spacing = 10;
+        float compact = scaledHeight < 420.0f ? 0.88f : 1.0f;
+        float panelX = Math.max(26.0f, scaledWidth * 0.075f);
+        float panelWidth = Math.min(320.0f, scaledWidth * 0.36f);
+        float buttonX = panelX + 14.0f;
+        float buttonWidth = panelWidth - 28.0f;
+        float buttonHeight = 34.0f * compact;
+        float spacing = 8.0f * compact;
 
         List<MenuButton> allButtons = new ArrayList<>();
-        allButtons.add(new MenuButton(I18n.translate("menu.singleplayer").toUpperCase(Locale.ROOT), () -> client.setScreen(new SelectWorldScreen(this)), 0, 0));
-        allButtons.add(new MenuButton(I18n.translate("menu.multiplayer").toUpperCase(Locale.ROOT), () -> client.setScreen(new MultiplayerScreen(this)), 0, 0));
-        allButtons.add(new MenuButton(I18n.translate("menu.options").toUpperCase(Locale.ROOT).replace(".", ""), () -> client.setScreen(new OptionsScreen(this, client.options)), 0, 0));
+        allButtons.add(new MenuButton(I18n.translate("menu.singleplayer").toUpperCase(Locale.ROOT), "Local worlds and test setups", () -> client.setScreen(new SelectWorldScreen(this)), 0, 0, buttonWidth, buttonHeight));
+        allButtons.add(new MenuButton(I18n.translate("menu.multiplayer").toUpperCase(Locale.ROOT), "Servers, queues and practice", () -> client.setScreen(new MultiplayerScreen(this)), 0, 0, buttonWidth, buttonHeight));
+        allButtons.add(new MenuButton(I18n.translate("menu.options").toUpperCase(Locale.ROOT).replace(".", ""), "Video, audio and control tuning", () -> client.setScreen(new OptionsScreen(this, client.options)), 0, 0, buttonWidth, buttonHeight));
 
         if (hasIAS())
         {
-            allButtons.add(new MenuButton("Accounts".toUpperCase(), () -> client.setScreen(getAccountScreen(this)), 0, 0));
+            allButtons.add(new MenuButton("ACCOUNTS", "Session and profile switching", () -> client.setScreen(getAccountScreen(this)), 0, 0, buttonWidth, buttonHeight));
         }
 
-        allButtons.add(new MenuButton(I18n.translate("menu.quit").toUpperCase(Locale.ROOT), client::scheduleStop, 0, 0));
+        allButtons.add(new MenuButton(I18n.translate("menu.quit").toUpperCase(Locale.ROOT), "Close the client cleanly", client::scheduleStop, 0, 0, buttonWidth, buttonHeight));
 
-        float totalWidth = 0;
+        float totalHeight = allButtons.size() * buttonHeight + (allButtons.size() - 1) * spacing;
+    float heroBottom = Math.max(24.0f, scaledHeight * 0.13f) + (160.0f * compact);
+    float startY = Math.min(scaledHeight - totalHeight - 24.0f, Math.max(heroBottom, scaledHeight * 0.42f));
+
+        float currentY = startY;
         for (MenuButton button : allButtons)
         {
-            totalWidth += button.getWidth();
-        }
-
-        totalWidth += spacing * (allButtons.size() - 1);
-
-        float startX = (scaledWidth - totalWidth) / 2;
-        float centerY = (scaledHeight / 2) + 60;
-
-        float currentX = startX;
-        for (MenuButton button : allButtons)
-        {
-            buttons.add(new MenuButton(button.getName(), button.getRunnable(), currentX, centerY));
-            currentX += button.getWidth() + spacing;
+            buttons.add(new MenuButton(button.getName(), button.getDescription(), button.getRunnable(), buttonX, currentY, buttonWidth, buttonHeight));
+            currentY += buttonHeight + spacing;
         }
     }
 
     public static void setSnowManager(SnowManager manager)
     {
         ShorelineMenuScreen.snowManager = manager;
-        snowManager.reset();
+        if (snowManager != null)
+        {
+            snowManager.reset();
+        }
+    }
+
+    private void renderBackdrop(DrawContext context, int width, int height)
+    {
+        int panelX = Math.round(Math.max(26.0f, width * 0.075f));
+        int panelY = Math.round(Math.max(24.0f, height * 0.13f));
+        int panelWidth = Math.round(Math.min(320.0f, width * 0.36f));
+        int panelHeight = Math.round(Math.min(height - 48.0f, height * 0.72f));
+        int rightPanelX = Math.round(width * 0.56f);
+        int rightPanelY = Math.round(height * 0.12f);
+        int rightPanelBottom = Math.round(height * 0.84f);
+
+        context.fill(0, 0, width, height, BACKGROUND);
+        context.fill(0, 0, width, height / 2, 0x140C0D10);
+        context.fill(width / 2, 0, width, height, 0x22080509);
+        context.fill(panelX, panelY, panelX + panelWidth, panelY + panelHeight, SURFACE);
+        context.fill(panelX, panelY, panelX + 4, panelY + panelHeight, ACCENT);
+        context.fill(panelX + panelWidth - 1, panelY, panelX + panelWidth, panelY + panelHeight, 0x26FFFFFF);
+        context.fill(rightPanelX, rightPanelY, width - 30, rightPanelBottom, SURFACE_SOFT);
+        context.fill(rightPanelX, rightPanelY, width - 30, rightPanelY + 1, 0x26FFFFFF);
+        context.fill(0, height - 42, width, height - 41, 0x15FFFFFF);
+        context.fill(Math.round(width * 0.075f), Math.round(height * 0.12f), Math.round(width * 0.075f) + 1, Math.round(height * 0.82f), 0x22FFFFFF);
+    }
+
+    private void renderHero(DrawContext context, int width, int height)
+    {
+        float compact = height < 420 ? 0.88f : 1.0f;
+        float panelX = Math.max(26.0f, width * 0.075f) + 14.0f;
+        float panelY = Math.max(24.0f, height * 0.13f) + 16.0f;
+        float titleScale = (width < 900 ? 2.7f : 3.2f) * compact;
+
+        drawChip(context, "COMBAT CLIENT", panelX, panelY, 0x66110F14, 0xFFBA1328);
+        drawScaledText(context, ShorelineMod.MOD_NAME, panelX, panelY + (22.0f * compact), titleScale, TEXT);
+        context.drawTextWithShadow(client.textRenderer,
+                "Sharper visuals. Cleaner routing. Faster fights.",
+                Math.round(panelX),
+            Math.round(panelY + (74.0f * compact)),
+                MUTED);
+        context.drawTextWithShadow(client.textRenderer,
+                "Built for fast entry and aggressive sessions.",
+                Math.round(panelX),
+            Math.round(panelY + (88.0f * compact)),
+                0x88FFFFFF);
+
+        String versionText = ("VERSION " + ShorelineMod.MOD_VER).toUpperCase(Locale.ROOT);
+        String clickGuiText = ("CLICKGUI " + Keyboard.getKeyName(ClickGuiModule.INSTANCE.getKeybind().getValue().getKeycode())).toUpperCase(Locale.ROOT);
+        drawChip(context, versionText, panelX, panelY + (112.0f * compact), 0x4414161B, 0x22FFFFFF);
+        drawChip(context, clickGuiText, panelX + getChipWidth(versionText) + 8.0f, panelY + (112.0f * compact), 0x4414161B, 0x22FFFFFF);
+    }
+
+    private void renderLogoColumn(DrawContext context, int width, int height)
+    {
+        float columnX = width * 0.56f;
+        float columnY = height * 0.12f;
+        float columnWidth = width - columnX - 30.0f;
+        float columnHeight = height * 0.72f;
+        float logoSize = Math.min(columnWidth, columnHeight) * (height < 420 ? 0.82f : 0.9f);
+        float whiteLogoSize = logoSize * 0.88f;
+        float bob = (float) Math.sin(System.currentTimeMillis() / 850.0) * 6.0f;
+        float logoX = columnX + (columnWidth - logoSize) / 2.0f;
+        float logoY = columnY + (columnHeight - logoSize) / 2.0f + bob;
+        float whiteLogoX = columnX + (columnWidth - whiteLogoSize) / 2.0f;
+        float whiteLogoY = columnY + (columnHeight - whiteLogoSize) / 2.0f + bob;
+
+        context.drawTextWithShadow(client.textRenderer, "MAIN MENU", Math.round(columnX + 14.0f), Math.round(columnY + 12.0f), 0x99FFFFFF);
+        drawLogo(context, RED_LOGO, logoX + 24.0f, logoY + 24.0f, logoSize, 0x50FF2436);
+        drawLogo(context, WHITE_LOGO, whiteLogoX, whiteLogoY, whiteLogoSize, 0xDDFFFFFF);
+        context.drawTextWithShadow(client.textRenderer, ShorelineMod.MOD_NAME.toUpperCase(Locale.ROOT), Math.round(columnX + 14.0f), Math.round(columnY + columnHeight - 22.0f), 0xCCFFFFFF);
+    }
+
+    private void renderFooter(DrawContext context, int width, int height)
+    {
+        String footer = "PRESS ESC TO CLOSE CLICKGUI OVERLAY";
+        context.drawTextWithShadow(client.textRenderer, footer, 18, height - 20, 0x88FFFFFF);
+        context.drawTextWithShadow(client.textRenderer, ShorelineMod.getFormattedVersion(), 18, height - 32, 0xAFFFFFFF);
+    }
+
+    private void drawChip(DrawContext context, String text, float x, float y, int background, int edge)
+    {
+        int chipWidth = Math.round(getChipWidth(text));
+        int left = Math.round(x);
+        int top = Math.round(y);
+        int bottom = top + 14;
+
+        context.fill(left, top, left + chipWidth, bottom, background);
+        context.fill(left, bottom - 1, left + chipWidth, bottom, edge);
+        context.drawTextWithShadow(client.textRenderer, text, left + 7, top + 3, 0xFFFFFFFF);
+    }
+
+    private float getChipWidth(String text)
+    {
+        return client.textRenderer.getWidth(text) + 14.0f;
+    }
+
+    private void drawScaledText(DrawContext context, String text, float x, float y, float scale, int color)
+    {
+        context.getMatrices().push();
+        context.getMatrices().translate(x, y, 0.0f);
+        context.getMatrices().scale(scale, scale, 1.0f);
+        context.drawTextWithShadow(client.textRenderer, text, 0, 0, color);
+        context.getMatrices().pop();
+    }
+
+    private void drawLogo(DrawContext context, Identifier logo, float x, float y, float size, int color)
+    {
+        int renderSize = Math.round(size);
+        context.drawTexture(RenderLayer::getGuiTextured,
+                logo,
+                Math.round(x),
+                Math.round(y),
+                0.0f,
+                0.0f,
+                renderSize,
+                renderSize,
+                renderSize,
+                renderSize,
+                color);
     }
 
     public boolean hasIAS()
