@@ -78,6 +78,11 @@ if not defined current_branch (
     exit /b 1
 )
 
+call :sync_branch "%current_branch%"
+if errorlevel 1 (
+    exit /b 1
+)
+
 echo.
 echo [INFO] Pushing to origin/%current_branch%...
 git push origin %current_branch%
@@ -90,10 +95,41 @@ echo.
 echo [INFO] Commit and push completed successfully.
 exit /b 0
 
+:sync_branch
+set "sync_branch_name=%~1"
+if not defined sync_branch_name (
+    echo [ERROR] No branch was provided for sync.
+    exit /b 1
+)
+
+echo.
+echo [INFO] Fetching origin/%sync_branch_name%...
+git fetch origin
+if errorlevel 1 (
+    echo [ERROR] Failed to fetch from origin.
+    exit /b 1
+)
+
+git show-ref --verify --quiet refs/remotes/origin/%sync_branch_name%
+if errorlevel 1 (
+    echo [INFO] origin/%sync_branch_name% does not exist yet. Skipping rebase.
+    exit /b 0
+)
+
+echo [INFO] Rebasing onto origin/%sync_branch_name%...
+git rebase origin/%sync_branch_name%
+if errorlevel 1 (
+    echo [ERROR] Rebase failed.
+    echo [INFO] Resolve the conflicts, then run git rebase --continue or git rebase --abort.
+    exit /b 1
+)
+
+exit /b 0
+
 :usage
 echo Usage:
 echo   git-commit.bat "Your commit message"
 echo.
-echo The script commits all changes and pushes the current branch.
+echo The script commits all changes, rebases onto the remote branch, and pushes the current branch.
 echo If no message is provided, the script prompts for one when a commit is needed.
 exit /b 0
