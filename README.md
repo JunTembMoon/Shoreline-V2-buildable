@@ -1,17 +1,10 @@
-[https://github.com/lolwut2/Shoreline-V2](https://github.com/lolwut2/Shoreline-V2)
-[https://github.com/not-filepile/Shoreline-V2-buildable/releases/download/latest/shoreline-2.0.jar]
----
-# git log [here](https://github.com/not-filepile/Shoreline-V2)
----
-$25 exit-scammed client.  
+SauceClient
+based in Shoreline but better then.
+
+
+
+based in $25 exit-scammed client. 
 thx to lolwut for uploading the code(unbuildable)
-
-Not all features have been tested.  
-
----
-`git clone https://github.com/not-filepile/Shoreline-V2-buildable.git && cd Shoreline-V2-buildable`  
-
-`./gradlew build`  
-
+thx to making buildable Shoreline v2 code
 ---
 ![screenshot](image.png)
