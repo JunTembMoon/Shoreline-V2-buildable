@@ -79,10 +79,13 @@ public class CrystalBaseScanner extends CrystalCevScanner
                 continue;
             }
 
-            double dist = getLocalEntity().squaredDistanceTo(entityPos);
-            if (dist > MathHelper.square(autoCrystal.getTargetRange().getValue()))
+            if (!autoCrystal.isNoAcEnabled())
             {
-                continue;
+                double dist = getLocalEntity().squaredDistanceTo(entityPos);
+                if (dist > MathHelper.square(autoCrystal.getTargetRange().getValue()))
+                {
+                    continue;
+                }
             }
 
             Box boundingBox = entity.getDimensions().getBoxAt(entityPos);
@@ -98,7 +101,7 @@ public class CrystalBaseScanner extends CrystalCevScanner
     @Override
     protected int getRadius()
     {
-        return (int) Math.ceil(autoCrystal.getTargetRange().getValue());
+        return (int) Math.ceil(autoCrystal.getTargetScanRange());
     }
 
     public List<CrystalData<?>> scanCrystalBases()

@@ -84,13 +84,16 @@ public class AutoCrystalModule extends ObsidianPlacerModule
     Config<Float> targetRange = new NumberConfig.Builder<Float>("TargetRange")
             .setMin(1.0f).setMax(15.0f).setDefaultValue(10.0f).setFormat("m")
             .setDescription("The range to target entities").build();
+        Config<Boolean> noAcConfig = new BooleanConfig.Builder("NoAC")
+            .setDescription("Ignores target range if the crystal can still reach the target")
+            .setDefaultValue(false).build();
     Config<Integer> extrapolateTicks = new NumberConfig.Builder<Integer>("Extrapolate")
             .setMin(0).setDefaultValue(0).setMax(10).setFormat(" ticks")
             .setDescription("The number of ticks ahead to predict movement").build();
     Config<Boolean> targetNakeds = new BooleanConfig.Builder("Nakeds")
             .setDescription("Targets nakeds").setVisible(targetPlayers::getValue).setDefaultValue(true).build();
     Config<Void> targetConfig = new ConfigGroup.Builder("Target")
-            .addAll(targetRange, extrapolateTicks, targetPlayers, targetNakeds, targetHostiles, targetPassives).build();
+            .addAll(targetRange, noAcConfig, extrapolateTicks, targetPlayers, targetNakeds, targetHostiles, targetPassives).build();
 
     Config<Float> breakRange = new NumberConfig.Builder<Float>("BreakRange")
             .setMin(1.0f).setMax(6.0f).setDefaultValue(4.0f).setFormat("m")
@@ -213,6 +216,7 @@ public class AutoCrystalModule extends ObsidianPlacerModule
 
     private static final Box FULL_CRYSTAL_BB = new Box(-0.5, 0.0, -0.5, 0.5, 2.0, 0.5);
     private static final Box HALF_CRYSTAL_BB = new Box(-0.5, 0.0, -0.5, 0.5, 1.0, 0.5);
+    private static final float CRYSTAL_DAMAGE_RANGE = 12.0f;
     private static final long ATTACK_PACKET_TIMEOUT = 1500L;
     private static final long PLACE_PACKET_TIMEOUT = 1000L;
 
@@ -244,6 +248,21 @@ public class AutoCrystalModule extends ObsidianPlacerModule
         super("AutoCrystal", new String[] {"CrystalAura"}, "Best CA on the market", GuiCategory.COMBAT);
         this.crystalCalc = new CrystalCalcManager(this);
         INSTANCE = this;
+    }
+
+    public boolean isNoAcEnabled()
+    {
+        return noAcConfig.getValue();
+    }
+
+    public float getTargetScanRange()
+    {
+        if (!isNoAcEnabled())
+        {
+            return targetRange.getValue();
+        }
+
+        return Math.max(targetRange.getValue(), Math.max(placeRange.getValue(), breakRange.getValue()) + CRYSTAL_DAMAGE_RANGE);
     }
 
     @Override
